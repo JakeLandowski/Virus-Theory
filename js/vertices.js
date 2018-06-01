@@ -40,19 +40,27 @@ canvas.onclick = function(event)
 
     if(vertices.length > 1)
     {
-        let randVertex = vertices[rand(0, vertices.length - 1)];
-        let edge = two.makeLine(x, y, x, y);
-
-        edge.stroke = "black";
-        edge.linewidth = 2;
-        edge.finalX = randVertex.translation.x;
-        edge.finalY = randVertex.translation.y;
-
-        edgeRenderingGroup.add(edge);
+        createEdge(x, y, vertices);
     } 
 
     vertexGroup.add(vertex);
 };
+
+function createEdge(fromX, fromY, currentVertices)
+{
+    for(let i = 0; i < rand(1, currentVertices.length - 1); i++)
+    {
+        let randVertex = currentVertices[rand(0, currentVertices.length - 1)];
+        let edge = two.makeLine(fromX, fromY, fromX, fromY);
+    
+        edge.stroke = "black";
+        edge.linewidth = 4;
+        edge.finalX = randVertex.translation.x;
+        edge.finalY = randVertex.translation.y;
+    
+        edgeRenderingGroup.add(edge);
+    }
+}
 
 
 // Run
