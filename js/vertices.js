@@ -49,7 +49,7 @@ function linePosition(line, start=true)
 //============ RUN ===============//
 
 const edgeSpeed = 4;
-const vertexSize = 10;
+const vertexSize = 12;
 const vertexOutlineSize = vertexSize / 4;
 const edgeWidth = vertexOutlineSize;
 
