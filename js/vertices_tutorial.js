@@ -10,30 +10,19 @@ const main = document.getElementById('main');
 two.appendTo(main);
 const canvas = main.getElementsByTagName('canvas')[0];
 
-/**
- *  Inclusive random integer between min and max; 
- * 
- *  @param min  
- *  @param max 
- */
 function rand(min, max) 
 {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/**
- *  Create an edge from given x, y point to a random vertex
- *  from the given array of existing vertices
- * 
- *  @param fromX 
- *  @param fromY 
- *  @param currentVertices Existing vertices
- */
 function createEdge(fromX, fromY, currentVertices)
 {
-    for(let i = 0; i < rand(1, currentVertices.length - 1); i++)
+    let numEdges = rand(1, currentVertices.length - 1);
+    
+    for(let i = 0; i < numEdges; i++)
     {
-        let randVertex = currentVertices[rand(0, currentVertices.length - 1)];
+        let randIndex = rand(0, currentVertices.length - 1);
+        let randVertex = currentVertices[randIndex];
         let edge = two.makeLine(fromX, fromY, fromX, fromY);
     
         edge.stroke = "black";
@@ -46,14 +35,6 @@ function createEdge(fromX, fromY, currentVertices)
     }
 }
 
-/**
- *  Get {x, y} position of a given line, 
- *  true for starting point
- *  false for ending point.
- * 
- *  @param line 
- *  @param start true if wanting position for starting point
- */
 function linePosition(line, start=true)
 {
     return {
@@ -62,27 +43,43 @@ function linePosition(line, start=true)
     };
 }
 
+function insideVertex(x, y, centerX, centerY, radius)
+{
+    return x > centerX - radius && x < centerX + radius && 
+           y > centerY - radius && y < centerY + radius;
+}
+
 //============ RUN ===============//
 
 const vertexSize = 12;
 const vertexOutlineSize = vertexSize / 4;
+
+
+// Thickness of edge line
 const edgeWidth = vertexOutlineSize;
 
+// 2 logical groups for edge lines
+// 1 for currently animating the other for finished animating
 const edgeRenderingGroup = two.makeGroup();
 const edgeGroup = two.makeGroup();
-const edges = edgeGroup.children;
 
+// The logical grouping of shape objects
+// Like layers in photoshop/illustrator
 const vertexGroup = two.makeGroup();
-const vertices = vertexGroup.children;
 
+// Array that holds the actual shape objects 
+const vertices = vertexGroup.children;
 
 // Create Vertex on click
 canvas.onclick = function(event)
 {
+    // x, y position of the click event
     let x = event.offsetX;
     let y = event.offsetY;
 
     let vertex = two.makeCircle(x, y, vertexSize);
+
+    // Set fill color and outline thickness
     vertex.fill = "#9911ff";
     vertex.linewidth = vertexOutlineSize;
 
@@ -93,7 +90,6 @@ canvas.onclick = function(event)
 
     vertexGroup.add(vertex);
 };
-
 
 // Render Loop
 two.bind('update', function(frameCount)
@@ -111,8 +107,7 @@ two.bind('update', function(frameCount)
             let finalY   = edge.finalY;
 
             // If close enough to center stop
-            if(linePos.x > finalX - vertexSize/2 && linePos.x < finalX + vertexSize/2 && 
-               linePos.y > finalY - vertexSize/2 && linePos.y < finalY + vertexSize/2)
+            if(insideVertex(linePos.x, linePos.y, finalX, finalY, vertexSize/2))
             {
                 edgeRenderingGroup.remove(edge);
                 edgeGroup.add(edge);
@@ -131,3 +126,6 @@ two.bind('update', function(frameCount)
 });
 
 two.play();
+
+
+
