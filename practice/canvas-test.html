@@ -8,45 +8,143 @@
 </head>
 <body>
 
-<canvas id="canvas" width="600" height="600"></canvas>
-
 <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-
-    window.requestAnimationFrame = window.requestAnimationFrame || function(callback){window.setTimeout(callback,16)};
-    gameEngine = function () 
-    {
-            this.frameCount=0;
-
-            this.update = function()
-            {
-            //loop over your objects and run each objects update function
-            }
-
-            this.render = function()
-            {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                entities.forEach(function(entity)
-                {
-                    ctx.save();
-                    entity.render();
-                    ctx.restore();
-                }.bind(this));
-                //loop over your objects and run each objects render function
-            }
-
-            this.frame = function() 
-            {
-                // self.update();
-                // self.render();
-                // self.frameCount++;
-                window.requestAnimationFrame(frame);
-            }
-            this.frame();
-    };
     
-    ctx.
+    CanvasEngine = function(config={}) 
+    {
+        this.config = 
+        {
+            fullscreen:      config.fullscreen      || false,
+            width:           config.width           || 640,
+            height:          config.height          || 480,
+            backgroundColor: config.backgroundColor || '#222'
+        };
+
+        this.canvas     = document.createElement('canvas');
+        this.context    = this.canvas.getContext('2d');
+        this.canvas.style.background = this.config.backgroundColor;
+        this.resize();
+
+        this.frameCount = 0;
+        this.entities   = [];
+    };
+
+    CanvasEngine.prototype = 
+    {
+        requestAnimationFrame: window.requestAnimationFrame.bind(window) || 
+                               function(callback){ window.setTimeout(callback, 16) },
+
+        resize()
+        {
+            if(this.config.fullscreen)
+            {
+                this.canvas.width  = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            else
+            {
+                this.canvas.width = window.innerWidth < this.config.width ? 
+                                    window.innerWidth : this.config.width;
+                
+                this.canvas.height = window.innerHeight < this.config.height ? 
+                                     window.innerHeight : this.config.height;
+            }
+
+            if(this.container)
+            {
+                this.container.style.width = this.canvas.width + 'px';
+                this.container.style.height = this.canvas.height + 'px';
+            }
+        },        
+
+        putDeepInside(container)
+        {
+            this.container = container;
+            container.style.width = this.canvas.width + 'px';
+            container.style.height = this.canvas.height + 'px';
+            container.style.padding = 0;
+            container.style.margin = 0;
+            container.style.overflow = 'hidden';
+            container.appendChild(this.canvas);
+        },
+
+        update()
+        {
+            this.entities.forEach(function(entity)
+            {
+                if(typeof entity.update === 'function')
+                    entity.update();
+
+            }.bind(this));
+        },
+
+        render()
+        {
+            this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.context.beginPath();
+            this.entities.forEach(function(entity)
+            {
+                if(typeof entity.render === 'function')
+                {
+                    this.context.save();
+                    entity.render();
+                    this.context.restore();
+                }
+
+            }.bind(this));
+        },
+
+        frame() 
+        {
+            this.update();
+            this.render();
+            this.frameCount++;
+            this.requestAnimationFrame(this.frame.bind(this));
+        },
+
+        start()
+        {
+            this.frame();
+        },
+
+        createCircle(x, y, radius)
+        {
+            this.entities.push(new Circle(x, y, radius, this.context));
+        }
+    };
+
+    const Circle = function(x, y, radius, context)
+    {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.context = context;
+    };
+
+    Circle.prototype = 
+    {
+        render()
+        {
+            this.context.fillStyle = '#fff';
+            this.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            this.context.fill();
+        },
+
+        update()
+        {
+            this.x++;
+        }
+    };
+
+    const engine = new CanvasEngine
+    ({
+        fullscreen: true
+    });
+
+    engine.putDeepInside(document.body);
+    engine.start();
+    engine.createCircle(5, 5, 5);
+
 </script>
 
 </body>
