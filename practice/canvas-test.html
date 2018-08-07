@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+
+<canvas id="canvas" width="600" height="600"></canvas>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    window.requestAnimationFrame = window.requestAnimationFrame || function(callback){window.setTimeout(callback,16)};
+    gameEngine = function () 
+    {
+            this.frameCount=0;
+
+            this.update = function()
+            {
+            //loop over your objects and run each objects update function
+            }
+
+            this.render = function()
+            {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                entities.forEach(function(entity)
+                {
+                    ctx.save();
+                    entity.render();
+                    ctx.restore();
+                }.bind(this));
+                //loop over your objects and run each objects render function
+            }
+
+            this.frame = function() 
+            {
+                // self.update();
+                // self.render();
+                // self.frameCount++;
+                window.requestAnimationFrame(frame);
+            }
+            this.frame();
+    };
+    
+    ctx.
+</script>
+
+</body>
+</html>
