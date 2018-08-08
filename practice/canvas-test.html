@@ -6,99 +6,91 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
 </head>
-<body>
+<body style="position:fixed; top:0; bottom:0; left: 0; right: 0; margin: 0;">
 
 <script>
     
-    CanvasEngine = function(config={}) 
+    RenderingEngine = function(container, config={}) 
     {
+
         this.config = 
         {
-            fullscreen:      config.fullscreen      || false,
-            width:           config.width           || 640,
-            height:          config.height          || 480,
             backgroundColor: config.backgroundColor || '#222'
         };
 
+        this.container  = container;
         this.canvas     = document.createElement('canvas');
         this.context    = this.canvas.getContext('2d');
+        this.calcPixelRatio();
+        
         this.canvas.style.background = this.config.backgroundColor;
-        this.resize();
+        container.appendChild(this.canvas);
+        this.resize(); 
 
-        this.frameCount = 0;
-        this.entities   = [];
+        // this.frameCount = 0;
+        this.entities   = Object.create(null);
     };
 
-    CanvasEngine.prototype = 
+    RenderingEngine.prototype = 
     {
         requestAnimationFrame: window.requestAnimationFrame.bind(window) || 
                                function(callback){ window.setTimeout(callback, 16) },
 
+        calcPixelRatio()
+        {
+            const ctx = this.context;
+            const DPR = window.devicePixelRatio || 1;
+            const BSR = ctx.webkitBackingStorePixelRatio ||
+                        ctx.mozBackingStorePixelRatio    ||
+                        ctx.msBackingStorePixelRatio     ||
+                        ctx.oBackingStorePixelRatio      ||
+                        ctx.backingStorePixelRatio       ||
+                        1;
+            this.pixelRatio = DPR / BSR;
+        },
+
         resize()
         {
-            if(this.config.fullscreen)
-            {
-                this.canvas.width  = window.innerWidth;
-                this.canvas.height = window.innerHeight;
-            }
-            else
-            {
-                this.canvas.width = window.innerWidth < this.config.width ? 
-                                    window.innerWidth : this.config.width;
-                
-                this.canvas.height = window.innerHeight < this.config.height ? 
-                                     window.innerHeight : this.config.height;
-            }
+            const width  = this.container.clientWidth;
+            const height = this.container.clientHeight;
 
-            if(this.container)
-            {
-                this.container.style.width = this.canvas.width + 'px';
-                this.container.style.height = this.canvas.height + 'px';
-            }
-        },        
-
-        putDeepInside(container)
-        {
-            this.container = container;
-            container.style.width = this.canvas.width + 'px';
-            container.style.height = this.canvas.height + 'px';
-            container.style.padding = 0;
-            container.style.margin = 0;
-            container.style.overflow = 'hidden';
-            container.appendChild(this.canvas);
+            this.canvas.width  = width  * this.pixelRatio;
+            this.canvas.height = height * this.pixelRatio;
+            this.canvas.style.width  = width  + 'px';
+            this.canvas.style.height = height + 'px';
+            this.context.scale(this.pixelRatio, this.pixelRatio);
         },
 
-        update()
-        {
-            this.entities.forEach(function(entity)
-            {
-                if(typeof entity.update === 'function')
-                    entity.update();
+        // update()
+        // {
+        //     this.entities.forEach(function(entity)
+        //     {
+        //         entity.update();
 
-            }.bind(this));
-        },
+        //     }.bind(this));
+        // },
 
         render()
         {
             this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-            this.context.beginPath();
-            this.entities.forEach(function(entity)
-            {
-                if(typeof entity.render === 'function')
-                {
-                    this.context.save();
-                    entity.render();
-                    this.context.restore();
-                }
+            const entities = this.entities;
+            let entity;
 
-            }.bind(this));
+            for(const entityId in entities)
+            {
+                entity = entities[entityId];
+                this.context.beginPath();
+                this.context.save();
+                entity.render();
+                this.context.restore();
+            }
         },
 
         frame() 
         {
-            this.update();
+            // this.update();
             this.render();
-            this.frameCount++;
+            // this.frameCount++;
             this.requestAnimationFrame(this.frame.bind(this));
         },
 
@@ -109,41 +101,125 @@
 
         createCircle(x, y, radius)
         {
-            this.entities.push(new Circle(x, y, radius, this.context));
+            let circ = new Circle(x, y, radius, this.context);
+            this.entities[circ.id] = circ;
+        },
+
+        createRect(x, y, width, height, radius)
+        {
+            let rect = new Rectangle(x, y, width, height, this.context);
+            this.entities[rect.id] = rect;
+        },
+
+        createLine(x1, y1, x2, y2)
+        {
+            let line = new Line(x1, y1, x2, y2, this.context);
+            this.entities[line.id] = line;
+        },
+
+        deleteEntity(id)
+        {
+            delete this.entities[id];
         }
     };
 
     const Circle = function(x, y, radius, context)
     {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
+        this.id = 'circ' + this.nextId++;
+        this.x  = x;
+        this.y  = y;
+        this.radius  = radius;
         this.context = context;
     };
 
     Circle.prototype = 
     {
+        nextId: 0,
         render()
         {
-            this.context.fillStyle = '#fff';
-            this.context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            this.context.fill();
-        },
-
-        update()
-        {
-            this.x++;
+            const ctx = this.context;
+            ctx.lineWidth   = this.lineWidth   || 1;
+            ctx.fillStyle   = this.fillStyle   || '#fff';
+            ctx.strokeStyle = this.strokeStyle || '#fff';
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
         }
     };
 
-    const engine = new CanvasEngine
-    ({
-        fullscreen: true
-    });
+    const Rectangle = function(x, y, width, height, context)
+    {
+        this.id = 'rect' + this.nextId++;
+        this.x  = x;
+        this.y  = y;
+        this.width   = width;
+        this.height  = height;
+        this.context = context;
+    };
 
-    engine.putDeepInside(document.body);
+    Rectangle.prototype = 
+    {
+        nextId: 0,
+        render()
+        {
+            const ctx = this.context;
+            ctx.lineWidth   = this.lineWidth   || 1;
+            ctx.fillStyle   = this.fillStyle   || '#fff';
+            ctx.strokeStyle = this.strokeStyle || '#000';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+    };
+
+    const Line = function(x1, y1, x2, y2, context)
+    {
+        this.id = 'line' + this.nextId++;
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
+        this.context = context;
+    };
+
+    Line.prototype = 
+    {
+        nextId: 0,
+        getStart()
+        {
+            return {x: this.x1, y: this.y1 };
+        },
+
+        getEnd()
+        {
+            return {x: this.x2, y: this.y2 };
+        },
+
+        setStart(x, y)
+        {
+            this.x1 = x;
+            this.y1 = y;
+        },
+
+        setEnd(x, y)
+        {
+            this.x2 = x;
+            this.y2 = y;
+        },
+
+        render()
+        {
+            const ctx = this.context;
+            ctx.lineWidth   = this.lineWidth   || 100;
+            ctx.strokeStyle = this.strokeStyle || '#fff';
+            ctx.moveTo(this.x1, this.x2);
+            ctx.lineTo(this.x2, this.y2);
+            ctx.stroke();
+        }
+    };
+
+    const engine = new RenderingEngine(document.body, {fullscreen: true});
     engine.start();
-    engine.createCircle(5, 5, 5);
+    engine.createCircle(50, 50, 50);
+    engine.createRect(150, 150, 50, 50);
+    engine.createLine(50, 150, 500, 400);
 
 </script>
 
